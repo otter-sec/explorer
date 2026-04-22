@@ -18,7 +18,7 @@
 | Dynamic | `/address/[address]/idl` | 130 kB | 1.27 MB |
 | Dynamic | `/address/[address]/instructions` | 10 kB | 1.13 MB |
 | Dynamic | `/address/[address]/metadata` | 10 kB | 1.03 MB |
-| Dynamic | `/address/[address]/nftoken-collection-nfts` | 10 kB | 1.10 MB |
+| Dynamic | `/address/[address]/nftoken-collection-nfts` | 10 kB | 1.08 MB |
 | Dynamic | `/address/[address]/program-multisig` | 10 kB | 1.08 MB |
 | Dynamic | `/address/[address]/rewards` | 10 kB | 1.02 MB |
 | Dynamic | `/address/[address]/security` | 10 kB | 1.08 MB |
@@ -45,7 +45,7 @@
 | Dynamic | `/api/verification/rugcheck/[mintAddress]` | 0 B | 0 B |
 | Dynamic | `/api/verified-programs/list/[page]` | 0 B | 0 B |
 | Dynamic | `/api/verified-programs/metadata/[programId]` | 0 B | 0 B |
-| Dynamic | `/block/[slot]` | 10 kB | 1.05 MB |
+| Dynamic | `/block/[slot]` | 10 kB | 1.11 MB |
 | Dynamic | `/block/[slot]/accounts` | 10 kB | 1.03 MB |
 | Dynamic | `/block/[slot]/programs` | 10 kB | 1.03 MB |
 | Dynamic | `/block/[slot]/rewards` | 10 kB | 1.04 MB |
@@ -57,6 +57,6 @@
 | Static | `/supply` | 10 kB | 1.04 MB |
 | Static | `/tos` | 330 B | 170 kB |
 | Dynamic | `/tx/[signature]` | 60 kB | 1.53 MB |
-| Dynamic | `/tx/[signature]/inspect` | 620 B | 1.29 MB |
-| Static | `/tx/inspector` | 630 B | 1.29 MB |
+| Dynamic | `/tx/[signature]/inspect` | 620 B | 1.30 MB |
+| Static | `/tx/inspector` | 630 B | 1.30 MB |
 | Static | `/verified-programs` | 10 kB | 180 kB |
