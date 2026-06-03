@@ -1,23 +1,26 @@
 import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
-import fetch, { type Response } from 'node-fetch';
 import { is, number, type } from 'superstruct';
 
+import { NO_STORE_HEADERS } from '@/app/shared/lib/http-utils';
 import { Logger } from '@/app/shared/lib/logger';
 
-import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
+import { CACHE_HEADERS, ERROR_CACHE_HEADERS } from '../../config';
+import { fetchUpstream, isTimeoutError } from '../../upstream';
 
 const RugCheckResponseSchema = type({
     score_normalised: number(),
 });
 
 type Params = {
-    params: {
+    params: Promise<{
         mintAddress: string;
-    };
+    }>;
 };
 
-export async function GET(_request: Request, { params: { mintAddress } }: Params) {
+export async function GET(_request: Request, props: Params) {
+    const { mintAddress } = await props.params;
+
     try {
         new PublicKey(mintAddress);
     } catch {
@@ -34,7 +37,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
     }
 
     try {
-        const response = await fetch(`https://premium.rugcheck.xyz/v1/tokens/${mintAddress}/report`, {
+        const response = await fetchUpstream(`https://premium.rugcheck.xyz/v1/tokens/${mintAddress}/report`, {
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': apiKey,
@@ -72,6 +75,13 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
         return NextResponse.json({ score: data.score_normalised }, { headers: CACHE_HEADERS });
     } catch (error) {
+        if (isTimeoutError(error)) {
+            Logger.warn('[api:rugcheck] Upstream request timed out', { mintAddress, sentry: true });
+            return NextResponse.json(
+                { error: 'Upstream request timed out' },
+                { headers: ERROR_CACHE_HEADERS, status: 504 },
+            );
+        }
         Logger.panic(error instanceof Error ? error : new Error('Failed to fetch rugcheck data'));
         return NextResponse.json(
             { error: 'Failed to fetch rugcheck data' },
@@ -85,6 +95,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 type NoDataStatusCode = 404 | 422;
 
 const RUGCHECK_NO_DATA_ERRORS: Partial<Record<string, NoDataStatusCode>> = {
+    'invalid token mint': 404,
     'not found': 404,
     'unable to generate report': 422,
 };

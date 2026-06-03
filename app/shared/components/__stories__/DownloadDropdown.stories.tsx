@@ -18,13 +18,11 @@ type Story = StoryObj<typeof meta>;
 
 const SAMPLE_DATA = new Uint8Array([72, 101, 108, 108, 111]);
 
-// Centered default for autodocs preview
 export const Default: Story = {
     args: {
         data: SAMPLE_DATA,
         filename: 'test-transaction',
     },
-    parameters: { layout: 'centered' },
 };
 
 export const WithData: Story = {
@@ -58,9 +56,27 @@ export const CustomEncodings: Story = {
     },
 };
 
+export const SingleEncoding: Story = {
+    args: {
+        data: SAMPLE_DATA,
+        encodings: ['hex'],
+        filename: 'test-transaction',
+    },
+};
+
+export const SingleEncodingLoading: Story = {
+    args: {
+        data: undefined,
+        encodings: ['hex'],
+        filename: 'test-transaction',
+        loading: true,
+    },
+};
+
 export const OnOpenChange: Story = {
     args: {
         data: SAMPLE_DATA,
+        encodings: ['hex', 'base58', 'base64'],
         filename: 'test-transaction',
         onOpenChange: fn(),
     },
@@ -75,6 +91,7 @@ export const OnOpenChange: Story = {
 export const OpenWithData: Story = {
     args: {
         data: SAMPLE_DATA,
+        encodings: ['hex', 'base58', 'base64'],
         filename: 'test-transaction',
     },
     play: async ({ canvasElement }) => {
@@ -88,6 +105,7 @@ export const OpenWithData: Story = {
 export const OpenLoading: Story = {
     args: {
         data: undefined,
+        encodings: ['hex', 'base58', 'base64'],
         filename: 'test-transaction',
         loading: true,
     },
@@ -102,6 +120,7 @@ export const OpenLoading: Story = {
 export const OpenError: Story = {
     args: {
         data: undefined,
+        encodings: ['hex', 'base58', 'base64'],
         error: new window.Error('RPC timeout'),
         filename: 'test-transaction',
     },

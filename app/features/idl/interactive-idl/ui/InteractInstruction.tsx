@@ -5,16 +5,17 @@ import type {
     SupportedIdl,
 } from '@entities/idl';
 import { Button } from '@shared/ui/button';
-import { Card } from '@shared/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@shared/ui/tooltip';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Loader, Send } from 'react-feather';
 import { Control, Controller, FieldPath } from 'react-hook-form';
 
+import { Card, CardSection } from '@/app/shared/ui/Card';
+
 import { createGetAutocompleteItems } from '../model/account-autocomplete/createGetAutocompleteItems';
 import type { AutocompleteItem } from '../model/account-autocomplete/types';
 import { createKnownAccountsPrefillDependency } from '../model/form-prefill/providers/known-accounts-prefill-provider';
-import { createPdaPrefillDependency } from '../model/form-prefill/providers/pda-prefill-provider';
+import { usePdaPrefill } from '../model/form-prefill/providers/use-pda-prefill';
 import { createWalletPrefillDependency } from '../model/form-prefill/providers/wallet-prefill-provider';
 import { useFormPrefill } from '../model/form-prefill/use-form-prefill';
 import {
@@ -27,6 +28,7 @@ import { AccordionContent, AccordionItem, AccordionTrigger } from './Accordion';
 import { AccountInput } from './AccountInput';
 import { ArgumentInput } from './ArgumentInput';
 
+// FIXME: missing Storybook story — uses useWallet + react-hook-form Controllers + nested IDL fixtures.
 export function InteractInstruction({
     idl,
     instruction,
@@ -52,13 +54,13 @@ export function InteractInstruction({
 
     const walletPrefillDependency = createWalletPrefillDependency(instruction, publicKey, fieldNames);
     const knownAccountsPrefillDependency = createKnownAccountsPrefillDependency(instruction, fieldNames);
-    const pdaPrefillDependency = createPdaPrefillDependency(idl, instruction, fieldNames);
     useFormPrefill({
         config: {
-            externalDependencies: [walletPrefillDependency, knownAccountsPrefillDependency, pdaPrefillDependency],
+            externalDependencies: [walletPrefillDependency, knownAccountsPrefillDependency],
         },
         form,
     });
+    usePdaPrefill({ fieldNames, form, instruction, pdas });
 
     const executeDisabled = !walletConnected || isExecuting;
 
@@ -149,17 +151,6 @@ export function InteractInstruction({
                 </AccordionContent>
             </AccordionItem>
         </Card>
-    );
-}
-
-function CardSection({ title, children }: { title: string; children: React.ReactNode }) {
-    return (
-        <div className="e-mb-6">
-            <h3 className="e-border e-border-neutral-800 e-bg-neutral-900 e-px-6 e-py-4 e-text-[10px] e-font-medium e-uppercase e-tracking-widest e-text-gray-400">
-                {title}
-            </h3>
-            {children}
-        </div>
     );
 }
 

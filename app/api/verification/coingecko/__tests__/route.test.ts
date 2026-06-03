@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { vi } from 'vitest';
 
 import { Logger } from '@/app/shared/lib/logger';
@@ -7,15 +6,8 @@ import { GET } from '../[address]/route';
 
 const VALID_ADDRESS = 'B61SyRxF2b8JwSLZHgEUF6rtn6NUikkrK1EMEgP6nhXW';
 
-vi.mock('node-fetch', async () => {
-    const actual = await vi.importActual('node-fetch');
-    return {
-        ...actual,
-        default: vi.fn(),
-    };
-});
-
-const fetchMock = vi.mocked(fetch);
+const fetchMock = vi.fn();
+vi.stubGlobal('fetch', fetchMock);
 
 describe('CoinGecko API Route', () => {
     afterEach(() => {
@@ -97,8 +89,45 @@ describe('CoinGecko API Route', () => {
         expect(await response.json()).toEqual(expect.objectContaining({ market_cap_rank: null }));
     });
 
+    it('should return 404 when upstream lists the token but has no USD market data', async () => {
+        mockFetchResponse(200, {
+            id: 'glow-staked-sol',
+            last_updated: null,
+            market_cap_rank: null,
+            market_data: {
+                current_price: {},
+                market_cap: {},
+                total_volume: {},
+            },
+        });
+        const response = await callRoute(VALID_ADDRESS);
+        expect(response.status).toBe(404);
+        expect(await response.json()).toEqual({ error: 'No market data' });
+        expect(Logger.warn).toHaveBeenCalledWith('[api:coingecko] No market data', { address: VALID_ADDRESS });
+    });
+
+    it('should return 404 when USD is missing from the currency map', async () => {
+        mockFetchResponse(200, {
+            last_updated: '2025-01-01T00:00:00Z',
+            market_cap_rank: 5,
+            market_data: {
+                current_price: { eur: 0.92 },
+                market_cap: { eur: 900_000 },
+                total_volume: { eur: 400_000 },
+            },
+        });
+        const response = await callRoute(VALID_ADDRESS);
+        expect(response.status).toBe(404);
+    });
+
     it('should return 502 and log to sentry when response schema is invalid', async () => {
-        mockFetchResponse(200, { unexpected: 'shape' });
+        // Has USD price (passes the "no market data" pre-check) but is missing
+        // other required fields — exercises the strict-schema failure path.
+        mockFetchResponse(200, {
+            market_data: {
+                current_price: { usd: 1.23 },
+            },
+        });
         const response = await callRoute(VALID_ADDRESS);
         expect(response.status).toBe(502);
         expect(await response.json()).toEqual({ error: 'Invalid response from coingecko API' });
@@ -114,6 +143,20 @@ describe('CoinGecko API Route', () => {
         expect(response.status).toBe(500);
         expect(await response.json()).toEqual({ error: 'Failed to fetch coingecko data' });
         expect(Logger.panic).toHaveBeenCalled();
+    });
+
+    it('should return 504 with short negative cache when upstream request times out', async () => {
+        const timeoutError = new DOMException('Signal timed out.', 'TimeoutError');
+        fetchMock.mockRejectedValueOnce(timeoutError);
+        const response = await callRoute(VALID_ADDRESS);
+        expect(response.status).toBe(504);
+        expect(await response.json()).toEqual({ error: 'Upstream request timed out' });
+        expect(response.headers.get('Cache-Control')).toBe('public, max-age=30, s-maxage=30');
+        expect(Logger.warn).toHaveBeenCalledWith('[api:coingecko] Upstream request timed out', {
+            address: VALID_ADDRESS,
+            sentry: true,
+        });
+        expect(Logger.panic).not.toHaveBeenCalled();
     });
 
     it('should use public API when COINGECKO_API_KEY is not set', async () => {
@@ -139,14 +182,15 @@ describe('CoinGecko API Route', () => {
 
 function mockFetchResponse(status: number, body: Record<string, unknown> = {}) {
     const ok = status >= 200 && status < 300;
+    // Cast: tests only stub the surface of Response that the route touches.
     fetchMock.mockResolvedValueOnce({
         json: async () => body,
         ok,
         status,
-    } as Awaited<ReturnType<typeof fetch>>);
+    } as Response);
 }
 
 function callRoute(address: string) {
     const request = new Request(`http://localhost:3000/api/verification/coingecko/${address}`);
-    return GET(request, { params: { address } });
+    return GET(request, { params: Promise.resolve({ address }) });
 }

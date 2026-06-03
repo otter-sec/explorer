@@ -236,6 +236,7 @@ function TokenHistoryTable({ tokens }: { tokens: TokenInfoWithPubkey[] }) {
                 />
             </div>
 
+            {/* TODO: migrate to <BaseCardTable> from @/app/shared/ui/Table */}
             <div className="table-responsive mb-0">
                 <table className="table table-sm table-nowrap card-table">
                     <thead>
@@ -386,7 +387,7 @@ const TokenTransactionRow = React.memo(function TokenTransactionRow({
             </td>
 
             <td>
-                <Address pubkey={mint} link truncate />
+                <Address pubkey={mint} link />
             </td>
 
             <InstructionDetailsCell signature={tx.signature} details={details} tx={tx} />
@@ -445,7 +446,7 @@ function formatTokenName(pubkey: string, cluster: Cluster, tokenInfo: TokenInfoW
     let display = displayAddress(pubkey, cluster, tokenInfo);
 
     if (display === pubkey) {
-        display = display.slice(0, TRUNCATE_TOKEN_LENGTH) + '\u2026';
+        display = `${display.slice(0, TRUNCATE_TOKEN_LENGTH)}\u2026`;
     }
 
     return display;

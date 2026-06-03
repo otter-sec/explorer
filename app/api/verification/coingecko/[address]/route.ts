@@ -1,12 +1,13 @@
 import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
-import fetch from 'node-fetch';
-import { is } from 'superstruct';
+import { is, number, type } from 'superstruct';
 
 import { CoinGeckoInfoSchema } from '@/app/features/token-verification-badge/server';
+import { NO_STORE_HEADERS } from '@/app/shared/lib/http-utils';
 import { Logger } from '@/app/shared/lib/logger';
 
-import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
+import { CACHE_HEADERS, ERROR_CACHE_HEADERS } from '../../config';
+import { fetchUpstream, isTimeoutError } from '../../upstream';
 
 const COINGECKO_QUERY = [
     'community_data=false',
@@ -17,13 +18,23 @@ const COINGECKO_QUERY = [
     'tickers=false',
 ].join('&');
 
+// Some tokens are listed on CoinGecko but have no trade data yet — upstream
+// returns 200 with empty currency maps and last_updated: null. This pre-check
+// catches that case so we can return 404 (a cacheable miss) instead of letting
+// it fall through as a spurious schema failure.
+const HasUsdMarketDataSchema = type({
+    market_data: type({ current_price: type({ usd: number() }) }),
+});
+
 type Params = {
-    params: {
+    params: Promise<{
         address: string;
-    };
+    }>;
 };
 
-export async function GET(_request: Request, { params: { address } }: Params) {
+export async function GET(_request: Request, props: Params) {
+    const { address } = await props.params;
+
     try {
         new PublicKey(address);
     } catch {
@@ -33,7 +44,7 @@ export async function GET(_request: Request, { params: { address } }: Params) {
     const { baseUrl, headers } = getCoingeckoConfig();
 
     try {
-        const response = await fetch(`${baseUrl}/coins/solana/contract/${address}?${COINGECKO_QUERY}`, {
+        const response = await fetchUpstream(`${baseUrl}/coins/solana/contract/${address}?${COINGECKO_QUERY}`, {
             headers,
         });
 
@@ -52,6 +63,11 @@ export async function GET(_request: Request, { params: { address } }: Params) {
         }
 
         const data = await response.json();
+
+        if (!is(data, HasUsdMarketDataSchema)) {
+            Logger.warn('[api:coingecko] No market data', { address });
+            return NextResponse.json({ error: 'No market data' }, { headers: NO_STORE_HEADERS, status: 404 });
+        }
 
         if (!is(data, CoinGeckoInfoSchema)) {
             Logger.warn('[api:coingecko] Invalid response schema', { address, sentry: true });
@@ -77,6 +93,13 @@ export async function GET(_request: Request, { params: { address } }: Params) {
             { headers: CACHE_HEADERS },
         );
     } catch (error) {
+        if (isTimeoutError(error)) {
+            Logger.warn('[api:coingecko] Upstream request timed out', { address, sentry: true });
+            return NextResponse.json(
+                { error: 'Upstream request timed out' },
+                { headers: ERROR_CACHE_HEADERS, status: 504 },
+            );
+        }
         Logger.panic(error instanceof Error ? error : new Error('Failed to fetch coingecko data'));
         return NextResponse.json(
             { error: 'Failed to fetch coingecko data' },

@@ -5,25 +5,28 @@ import ReactMarkdown from 'react-markdown';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGFM from 'remark-gfm';
 
+import { getFeatureInfo } from '@/app/entities/feature-gate/server';
 import { fetchFeatureGateInformation, getFeatureGateOpenGraph } from '@/app/features/feature-gate/server';
-import { getFeatureInfo } from '@/app/utils/feature-gate/utils';
 
 type Props = Readonly<{
-    params: {
+    params: Promise<{
         address: string;
-    };
+    }>;
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
+    const { address } = await props.params;
     const title = `Feature Gate | ${await getReadableTitleFromAddress(props)} | Solana`;
     return {
-        description: `Feature information for address ${props.params.address} on Solana`,
-        openGraph: getFeatureGateOpenGraph(props.params.address),
+        description: `Feature information for address ${address} on Solana`,
+        openGraph: getFeatureGateOpenGraph(address),
         title,
     };
 }
 
-export default async function FeatureGatePage({ params: { address } }: Props) {
+export default async function FeatureGatePage(props: Props) {
+    const { address } = await props.params;
+
     const feature = getFeatureInfo(address);
     const data = await fetchFeatureGateInformation(feature);
 
@@ -35,6 +38,7 @@ export default async function FeatureGatePage({ params: { address } }: Props) {
                     h2: ({ children }) => <h2 className="e-mb-2 e-mt-5 e-text-gray-300">{children}</h2>,
                     li: ({ children }) => <li className="e-mb-1 e-text-gray-400">{children}</li>,
                     p: ({ children }) => <p className="e-mb-4 e-mt-0 e-text-gray-400">{children}</p>,
+                    // TODO: migrate to <BaseTable> from @/app/shared/ui/Table
                     table: ({ children }) => <table className="table table-sm">{children}</table>,
                 }}
             >

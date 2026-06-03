@@ -56,21 +56,25 @@ const initialDashboardInfo: DashboardInfo = {
 };
 
 type SetActive = React.Dispatch<React.SetStateAction<boolean>>;
-const StatsProviderContext = React.createContext<
-    | {
-          setActive: SetActive;
-          setTimedOut: () => void;
-          retry: () => void;
-          active: boolean;
-      }
-    | undefined
+type StatsProviderState = {
+    setActive: SetActive;
+    setTimedOut: () => void;
+    retry: () => void;
+    active: boolean;
+};
+export const StatsProviderContext: React.Context<StatsProviderState | undefined> = React.createContext<
+    StatsProviderState | undefined
 >(undefined);
 
 type DashboardState = { info: DashboardInfo };
-const DashboardContext = React.createContext<DashboardState | undefined>(undefined);
+export const DashboardContext: React.Context<DashboardState | undefined> = React.createContext<
+    DashboardState | undefined
+>(undefined);
 
 type PerformanceState = { info: PerformanceInfo };
-const PerformanceContext = React.createContext<PerformanceState | undefined>(undefined);
+export const PerformanceContext: React.Context<PerformanceState | undefined> = React.createContext<
+    PerformanceState | undefined
+>(undefined);
 
 type Props = { children: React.ReactNode };
 

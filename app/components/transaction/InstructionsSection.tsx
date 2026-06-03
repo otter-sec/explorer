@@ -11,7 +11,6 @@ import { PythDetailsCard } from '@components/instruction/pyth/PythDetailsCard';
 import { isPythInstruction } from '@components/instruction/pyth/types';
 import { isSerumInstruction } from '@components/instruction/serum/types';
 import { SerumDetailsCard } from '@components/instruction/SerumDetailsCard';
-import { StakeDetailsCard } from '@components/instruction/stake/StakeDetailsCard';
 import { SystemDetailsCard } from '@components/instruction/system/SystemDetailsCard';
 import { TokenDetailsCard } from '@components/instruction/token/TokenDetailsCard';
 import { isTokenLendingInstruction } from '@components/instruction/token-lending/types';
@@ -22,8 +21,15 @@ import { UnknownDetailsCard } from '@components/instruction/UnknownDetailsCard';
 import { VoteDetailsCard } from '@components/instruction/vote/VoteDetailsCard';
 import { isWormholeInstruction } from '@components/instruction/wormhole/types';
 import { WormholeDetailsCard } from '@components/instruction/WormholeDetailsCard';
+import {
+    isZkElGamalProofInstruction,
+    ZkElGamalProofDetailsCard,
+} from '@components/instruction/ZkElGamalProofDetailsCard';
 import { useAnchorProgram } from '@entities/idl';
+import { MetaplexTokenMetadataDetailsCard } from '@features/mpl-token-metadata';
+import { isStakeInstruction, RawStakeDetailsCard, StakeDetailsCard } from '@features/stake';
 import { isTokenBatchInstruction, TokenBatchCard } from '@features/token-batch';
+import { MPL_TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
 import { useCluster } from '@providers/cluster';
 import { useTransactionDetails, useTransactionStatus } from '@providers/transactions';
 import { useFetchTransactionDetails } from '@providers/transactions/parsed';
@@ -258,8 +264,14 @@ function InstructionCard({
     if (ComputeBudgetProgram.programId.equals(transactionIx.programId)) {
         return <ComputeBudgetDetailsCard key={key} {...props} />;
     }
+    if (isZkElGamalProofInstruction(transactionIx)) {
+        return <ZkElGamalProofDetailsCard key={key} {...props} />;
+    }
     if (isLighthouseInstruction(transactionIx)) {
         return <LighthouseDetailsCard key={key} {...props} />;
+    }
+    if (isStakeInstruction(transactionIx)) {
+        return <RawStakeDetailsCard key={key} {...props} />;
     }
     if (isTokenBatchInstruction(transactionIx)) {
         return (
@@ -272,6 +284,13 @@ function InstructionCard({
         return (
             <ErrorBoundary fallback={<UnknownDetailsCard {...props} />} key={key}>
                 <SolanaAttestationDetailsCard {...props} />
+            </ErrorBoundary>
+        );
+    }
+    if (transactionIx.programId.toBase58() === MPL_TOKEN_METADATA_PROGRAM_ID) {
+        return (
+            <ErrorBoundary fallback={<UnknownDetailsCard {...props} />} key={key}>
+                <MetaplexTokenMetadataDetailsCard {...props} />
             </ErrorBoundary>
         );
     }

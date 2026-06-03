@@ -4,6 +4,8 @@ import { useClusterPath } from '@utils/url';
 import Link from 'next/link';
 import React from 'react';
 
+import { invariant } from '@/app/shared/lib/invariant';
+
 type AccountStats = {
     reads: number;
     writes: number;
@@ -25,7 +27,9 @@ export function BlockAccountsCard({ block, blockSlot }: { block: VersionedBlockR
             });
             message.compiledInstructions.forEach(ix => {
                 ix.accountKeyIndexes.forEach(index => {
-                    const address = accountKeys.get(index)!.toBase58();
+                    const accountKey = accountKeys.get(index);
+                    invariant(accountKey, `account key index ${index} out of range`);
+                    const address = accountKey.toBase58();
                     txSet.set(address, message.isAccountWritable(index));
                 });
             });
@@ -63,6 +67,7 @@ export function BlockAccountsCard({ block, blockSlot }: { block: VersionedBlockR
                 <h3 className="card-header-title">Block Account Usage</h3>
             </div>
 
+            {/* TODO: migrate to <BaseCardTable> from @/app/shared/ui/Table */}
             <div className="table-responsive mb-0">
                 <table className="table table-sm table-nowrap card-table">
                     <thead>

@@ -8,3 +8,5 @@ dist/
 build/
 .pnpm-store/
 .claude/
+.worktrees/
+storybook-static/

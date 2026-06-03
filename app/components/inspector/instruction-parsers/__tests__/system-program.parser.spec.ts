@@ -3,6 +3,8 @@ import { PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.j
 import { getCreateAccountWithSeedInstructionDataEncoder } from '@solana-program/system';
 import { describe, expect, test } from 'vitest';
 
+import { invariant } from '@/app/shared/lib/invariant';
+
 import { parseSystemProgramInstruction } from '../system-program.parser';
 
 /** Helper to encode CreateAccountWithSeed instruction data using @solana-program/system */
@@ -34,7 +36,7 @@ describe('parseSystemProgramInstruction', () => {
         const lamports = 2100000;
         const space = 165;
 
-        test('parses 3-account variant (payer !== baseAccount)', () => {
+        test('should parse 3-account variant (payer !== baseAccount)', () => {
             // Create instruction with 3 accounts: payer, newAccount, baseAccount
             const instruction = new TransactionInstruction({
                 data: createCreateAccountWithSeedData({
@@ -54,18 +56,18 @@ describe('parseSystemProgramInstruction', () => {
 
             const result = parseSystemProgramInstruction(instruction);
 
-            expect(result).not.toBeNull();
-            expect(result!.type).toBe('createAccountWithSeed');
-            expect(result!.info.source.equals(payer)).toBe(true);
-            expect(result!.info.newAccount.equals(newAccount)).toBe(true);
-            expect(result!.info.base.equals(baseAccount)).toBe(true);
-            expect(result!.info.seed).toBe(seed);
-            expect(result!.info.lamports).toBe(lamports);
-            expect(result!.info.space).toBe(space);
-            expect(result!.info.owner.equals(tokenProgram)).toBe(true);
+            invariant(result, 'expected parser to return an instruction for a valid CreateAccountWithSeed payload');
+            expect(result.type).toBe('createAccountWithSeed');
+            expect(result.info.source.equals(payer)).toBe(true);
+            expect(result.info.newAccount.equals(newAccount)).toBe(true);
+            expect(result.info.base.equals(baseAccount)).toBe(true);
+            expect(result.info.seed).toBe(seed);
+            expect(result.info.lamports).toBe(lamports);
+            expect(result.info.space).toBe(space);
+            expect(result.info.owner.equals(tokenProgram)).toBe(true);
         });
 
-        test('parses 2-account variant (payer === baseAccount)', () => {
+        test('should parse 2-account variant (payer === baseAccount)', () => {
             // Create instruction with 2 accounts: payer (who is also baseAccount), newAccount
             // This is the case that was causing the "Not enough accounts" error
             const instruction = new TransactionInstruction({
@@ -88,19 +90,22 @@ describe('parseSystemProgramInstruction', () => {
 
             const result = parseSystemProgramInstruction(instruction);
 
-            expect(result).not.toBeNull();
-            expect(result!.type).toBe('createAccountWithSeed');
-            expect(result!.info.source.equals(payer)).toBe(true);
-            expect(result!.info.newAccount.equals(newAccount)).toBe(true);
+            invariant(
+                result,
+                'expected parser to return an instruction for a valid 2-account CreateAccountWithSeed payload',
+            );
+            expect(result.type).toBe('createAccountWithSeed');
+            expect(result.info.source.equals(payer)).toBe(true);
+            expect(result.info.newAccount.equals(newAccount)).toBe(true);
             // Base should be extracted from instruction data, not accounts
-            expect(result!.info.base.equals(payer)).toBe(true);
-            expect(result!.info.seed).toBe(seed);
-            expect(result!.info.lamports).toBe(lamports);
-            expect(result!.info.space).toBe(space);
-            expect(result!.info.owner.equals(tokenProgram)).toBe(true);
+            expect(result.info.base.equals(payer)).toBe(true);
+            expect(result.info.seed).toBe(seed);
+            expect(result.info.lamports).toBe(lamports);
+            expect(result.info.space).toBe(space);
+            expect(result.info.owner.equals(tokenProgram)).toBe(true);
         });
 
-        test('handles different seed lengths correctly', () => {
+        test('should handle different seed lengths correctly', () => {
             const longSeed = 'this-is-a-very-long-seed-for-testing-purposes';
 
             const instruction = new TransactionInstruction({
@@ -120,11 +125,11 @@ describe('parseSystemProgramInstruction', () => {
 
             const result = parseSystemProgramInstruction(instruction);
 
-            expect(result).not.toBeNull();
-            expect(result!.info.seed).toBe(longSeed);
+            invariant(result, 'expected parser to return an instruction when seed is long');
+            expect(result.info.seed).toBe(longSeed);
         });
 
-        test('returns null for non-System Program instructions', () => {
+        test('should return null for non-System Program instructions', () => {
             const instruction = new TransactionInstruction({
                 // Not System Program
                 data: Buffer.from([0, 0, 0, 0]),
@@ -138,7 +143,7 @@ describe('parseSystemProgramInstruction', () => {
             expect(result).toBeNull();
         });
 
-        test('returns null for unrecognized System Program instructions', () => {
+        test('should return null for unrecognized System Program instructions', () => {
             const instruction = new TransactionInstruction({
                 data: Buffer.from([255, 255, 255, 255]),
                 keys: [],

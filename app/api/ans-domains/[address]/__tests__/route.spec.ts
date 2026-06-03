@@ -10,7 +10,7 @@ vi.mock('@entities/domain/api/fetch-ans-domains', () => ({
 }));
 
 const VALID_ADDRESS = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
-const mockRequest = new Request('http://localhost:3000/api/ans-domains/' + VALID_ADDRESS);
+const mockRequest = new Request(`http://localhost:3000/api/ans-domains/${VALID_ADDRESS}`);
 
 describe('GET /api/ans-domains/[address]', () => {
     beforeEach(() => {
@@ -19,7 +19,7 @@ describe('GET /api/ans-domains/[address]', () => {
 
     describe('validation', () => {
         it('should reject an invalid wallet address', async () => {
-            const response = await GET(mockRequest, { params: { address: 'not-a-pubkey' } });
+            const response = await GET(mockRequest, { params: Promise.resolve({ address: 'not-a-pubkey' }) });
 
             expect(response.status).toBe(400);
             const data = await response.json();
@@ -36,7 +36,7 @@ describe('GET /api/ans-domains/[address]', () => {
         it('should return domains from fetchAnsDomains', async () => {
             vi.mocked(fetchAnsDomains).mockResolvedValueOnce(mockDomains);
 
-            const response = await GET(mockRequest, { params: { address: VALID_ADDRESS } });
+            const response = await GET(mockRequest, { params: Promise.resolve({ address: VALID_ADDRESS }) });
 
             expect(response.status).toBe(200);
             const data = await response.json();
@@ -46,7 +46,7 @@ describe('GET /api/ans-domains/[address]', () => {
         it('should call fetchAnsDomains with the address', async () => {
             vi.mocked(fetchAnsDomains).mockResolvedValueOnce([]);
 
-            await GET(mockRequest, { params: { address: VALID_ADDRESS } });
+            await GET(mockRequest, { params: Promise.resolve({ address: VALID_ADDRESS }) });
 
             expect(fetchAnsDomains).toHaveBeenCalledWith(VALID_ADDRESS);
         });
@@ -54,7 +54,7 @@ describe('GET /api/ans-domains/[address]', () => {
         it('should return cache headers with 86400s max-age', async () => {
             vi.mocked(fetchAnsDomains).mockResolvedValueOnce([]);
 
-            const response = await GET(mockRequest, { params: { address: VALID_ADDRESS } });
+            const response = await GET(mockRequest, { params: Promise.resolve({ address: VALID_ADDRESS }) });
 
             expect(response.headers.get('Cache-Control')).toBe('public, s-maxage=86400, stale-while-revalidate=3600');
         });
@@ -65,26 +65,32 @@ describe('GET /api/ans-domains/[address]', () => {
             const error = new Error('Connection failed');
             vi.mocked(fetchAnsDomains).mockRejectedValueOnce(error);
 
-            const response = await GET(mockRequest, { params: { address: VALID_ADDRESS } });
+            const response = await GET(mockRequest, { params: Promise.resolve({ address: VALID_ADDRESS }) });
 
             expect(response.status).toBe(500);
             const data = await response.json();
             expect(data.domains).toEqual([]);
         });
 
-        it('should log the error on fetch failure', async () => {
+        it('should escalate on fetch failure', async () => {
             const error = new Error('Connection failed');
             vi.mocked(fetchAnsDomains).mockRejectedValueOnce(error);
 
-            await GET(mockRequest, { params: { address: VALID_ADDRESS } });
+            await GET(mockRequest, { params: Promise.resolve({ address: VALID_ADDRESS }) });
 
-            expect(Logger.error).toHaveBeenCalledWith(error, { address: VALID_ADDRESS });
+            expect(Logger.panic).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    cause: error,
+                    message: '[api:ans-domains] Failed to fetch ANS domains',
+                }),
+                { sentryExtras: { address: VALID_ADDRESS } },
+            );
         });
 
         it('should not cache error responses', async () => {
             vi.mocked(fetchAnsDomains).mockRejectedValueOnce(new Error('fail'));
 
-            const response = await GET(mockRequest, { params: { address: VALID_ADDRESS } });
+            const response = await GET(mockRequest, { params: Promise.resolve({ address: VALID_ADDRESS }) });
 
             expect(response.headers.get('Cache-Control')).toBe('no-store');
         });

@@ -83,9 +83,14 @@ export function toBase64(bytes: Uint8Array): string {
  */
 const fromHexFallback = (hex: string): Uint8Array => {
     const bytes = new Uint8Array(hex.length / 2);
-    bytes.forEach((_, i) => {
-        bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-    });
+    for (let i = 0; i < hex.length; i += 2) {
+        const pair = hex.slice(i, i + 2);
+        const byte = parseInt(pair, 16);
+        if (isNaN(byte)) {
+            throw new Error(`Invalid hex character at position ${i}: "${pair}"`);
+        }
+        bytes[i / 2] = byte;
+    }
     return bytes;
 };
 
@@ -104,7 +109,7 @@ export function fromHex(hex: string): Uint8Array {
         return new Uint8Array(0);
     }
     // Normalise odd-length to even, matching Buffer.from('hex') semantics
-    const normalised = cleanHex.length % 2 === 0 ? cleanHex : '0' + cleanHex;
+    const normalised = cleanHex.length % 2 === 0 ? cleanHex : `0${cleanHex}`;
     // Use native Uint8Array.fromHex when available (Chrome 133+, Firefox 133+, Safari 18.2+)
     if ('fromHex' in Uint8Array) {
         return (Uint8Array.fromHex as (s: string) => Uint8Array)(normalised);

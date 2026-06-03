@@ -1,6 +1,8 @@
 import { Keypair, PublicKey, SystemProgram, TransactionMessage, VersionedTransaction } from '@solana/web3.js';
 import { describe, expect, it } from 'vitest';
 
+import { invariant } from '@/app/shared/lib/invariant';
+
 import { base64TxSearchProvider } from '../base64-tx-search-provider';
 import { createSearchContext } from './provider-test-utils';
 
@@ -28,7 +30,9 @@ describe('base64TxSearchProvider', () => {
         const b64 = Buffer.from(messageBytes).toString('base64');
         const results = await base64TxSearchProvider.search(b64, ctx);
         const params = extractParams(results[0].options[0].pathname);
-        const decodedMessage = new Uint8Array(Buffer.from(params.get('message')!, 'base64'));
+        const messageParam = params.get('message');
+        invariant(messageParam, 'expected message param in inspector URL');
+        const decodedMessage = new Uint8Array(Buffer.from(messageParam, 'base64'));
 
         expect(decodedMessage).toEqual(messageBytes);
     });
@@ -80,7 +84,8 @@ describe('base64TxSearchProvider', () => {
         const b64 = createBase64Transaction();
         const results = await base64TxSearchProvider.search(b64, ctx);
         const params = extractParams(results[0].options[0].pathname);
-        const message = params.get('message')!;
+        const message = params.get('message');
+        invariant(message, 'expected message param in inspector URL');
 
         // A double-encoded value would contain '%25' (the encoding of '%')
         expect(message).not.toContain('%25');
@@ -108,7 +113,7 @@ describe('base64TxSearchProvider', () => {
             // data character ('q' → 'x') changes trailing bits so the
             // decoded bytes re-encode to a different string.
             const valid = Buffer.alloc(70, 0xab).toString('base64');
-            const corrupted = valid.slice(0, -4) + 'qx==';
+            const corrupted = `${valid.slice(0, -4)}qx==`;
             expect(await base64TxSearchProvider.search(corrupted, ctx)).toEqual([]);
         });
 

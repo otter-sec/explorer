@@ -1,15 +1,16 @@
 'use client';
+import { LoadingCard } from '@components/common/LoadingCard';
 import { getIdlVersion, isIdlProgramIdMismatch, type SupportedIdl, useAnchorProgram } from '@entities/idl';
-import { useProgramMetadataIdl } from '@entities/program-metadata';
+import { useProgramMetadataCodamaIdl, useProgramMetadataIdl } from '@entities/program-metadata';
 import { useCluster } from '@providers/cluster';
 import { Badge } from '@shared/ui/badge';
 import { cn } from '@shared/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ExternalLink } from 'react-feather';
 
+import { BaseWarningCard } from '@/app/shared/ui/WarningCard';
 import { clusterSlug } from '@/app/utils/cluster';
 
-import { BaseWarningCard } from '../interactive-idl/ui/BaseWarningCard';
 import { IdlVariant, useIdlLastTransactionDate } from '../model/use-idl-last-transaction-date';
 import { IdlInstructionSection } from './IdlInstructionSection';
 import { IdlSection } from './IdlSection';
@@ -24,8 +25,14 @@ type IdlTab = {
 export function IdlCard({ programId }: { programId: string }) {
     const { url, cluster } = useCluster();
     const network = clusterSlug(cluster);
-    const { idl } = useAnchorProgram(programId, url, cluster);
-    const { programMetadataIdl } = useProgramMetadataIdl(programId, url, cluster);
+    const { idl, isLoading: isAnchorIdlLoading } = useAnchorProgram(programId, url, cluster);
+    const { programMetadataIdl, isLoading: isProgramMetadataIdlLoading } = useProgramMetadataIdl(
+        programId,
+        url,
+        cluster,
+    );
+    const { codamaIdl, isLoading: isCodamaIdlLoading } = useProgramMetadataCodamaIdl(programId, url, cluster);
+    const isAnyIdlLoading = isAnchorIdlLoading || isProgramMetadataIdlLoading || isCodamaIdlLoading;
     const [activeTabIndex, setActiveTabIndex] = useState<number>();
     const [searchStr, setSearchStr] = useState<string>('');
 
@@ -60,8 +67,18 @@ export function IdlCard({ programId }: { programId: string }) {
             }
         }
 
+        // Optionally add codama tab
+        if (codamaIdl) {
+            idlTabs.push({
+                badge: 'Codama IDL',
+                id: IdlVariant.Codama,
+                idl: codamaIdl,
+                title: 'Codama',
+            });
+        }
+
         return idlTabs;
-    }, [idl, programMetadataIdl, preferredIdlVariant]);
+    }, [idl, programMetadataIdl, codamaIdl, preferredIdlVariant]);
 
     useEffect(() => {
         // Activate first tab when tabs are available
@@ -71,6 +88,9 @@ export function IdlCard({ programId }: { programId: string }) {
     }, [tabs, activeTabIndex]);
 
     if (tabs.length === 0 || activeTabIndex === undefined) {
+        if (isAnyIdlLoading || tabs.length > 0) {
+            return <LoadingCard message="Loading program IDL" />;
+        }
         return (
             <div className="card">
                 <div className="card-header">

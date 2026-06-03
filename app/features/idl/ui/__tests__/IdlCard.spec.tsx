@@ -9,6 +9,7 @@ import { vi } from 'vitest';
 import { GENESIS_HASHES } from '@/app/entities/chain-id';
 import * as programMetadataIdlModule from '@/app/entities/program-metadata';
 import { ClusterProvider } from '@/app/providers/cluster';
+import { invariant } from '@/app/shared/lib/invariant';
 import { Cluster, clusterSlug } from '@/app/utils/cluster';
 
 import { IdlCard } from '../IdlCard';
@@ -108,10 +109,12 @@ describe('IdlCard', () => {
     test('should render IdlCard with PMP IDL when programMetadataIdl exists', async () => {
         vi.spyOn(anchorModule, 'useAnchorProgram').mockReturnValue({
             idl: null,
+            isLoading: false,
             program: null,
         });
 
         vi.spyOn(programMetadataIdlModule, 'useProgramMetadataIdl').mockReturnValue({
+            isLoading: false,
             programMetadataIdl: createMockProgramMetadataIdl(),
         });
 
@@ -139,7 +142,9 @@ describe('IdlCard', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
         expect(windowOpenSpy).toHaveBeenCalledTimes(1);
-        const [openedUrl, target, features] = windowOpenSpy.mock.calls[0]!;
+        const firstCall = windowOpenSpy.mock.calls[0];
+        invariant(firstCall, 'expected window.open to have been called');
+        const [openedUrl, target, features] = firstCall;
         const castawayUrl = new URL(openedUrl as string);
         expect(castawayUrl.origin).toBe('https://www.castaway.lol');
         expect(castawayUrl.pathname).toBe('/');
@@ -154,10 +159,12 @@ describe('IdlCard', () => {
     test('should render IdlCard with Anchor IDL when anchorIdl exists', async () => {
         vi.spyOn(anchorModule, 'useAnchorProgram').mockReturnValue({
             idl: createMockAnchorIdl(),
+            isLoading: false,
             program: null,
         });
 
         vi.spyOn(programMetadataIdlModule, 'useProgramMetadataIdl').mockReturnValue({
+            isLoading: false,
             programMetadataIdl: null,
         });
 
@@ -185,7 +192,9 @@ describe('IdlCard', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
         expect(windowOpenSpy).toHaveBeenCalledTimes(1);
-        const [openedUrl, target, features] = windowOpenSpy.mock.calls[0]!;
+        const firstCall = windowOpenSpy.mock.calls[0];
+        invariant(firstCall, 'expected window.open to have been called');
+        const [openedUrl, target, features] = firstCall;
         const castawayUrl = new URL(openedUrl as string);
         expect(castawayUrl.origin).toBe('https://www.castaway.lol');
         expect(castawayUrl.pathname).toBe('/');
@@ -200,10 +209,12 @@ describe('IdlCard', () => {
     test('should render IdlCard tabs when both IDLs exist', async () => {
         vi.spyOn(anchorModule, 'useAnchorProgram').mockReturnValue({
             idl: createMockAnchorIdl(),
+            isLoading: false,
             program: null,
         });
 
         vi.spyOn(programMetadataIdlModule, 'useProgramMetadataIdl').mockReturnValue({
+            isLoading: false,
             programMetadataIdl: createMockProgramMetadataIdl(),
         });
 
@@ -225,10 +236,12 @@ describe('IdlCard', () => {
     test('should render BaseWarningCard when Anchor IDL address mismatches programId', async () => {
         vi.spyOn(anchorModule, 'useAnchorProgram').mockReturnValue({
             idl: createMockAnchorIdl(Keypair.generate().publicKey.toBase58()), // imitate malicious IDL
+            isLoading: false,
             program: null,
         });
 
         vi.spyOn(programMetadataIdlModule, 'useProgramMetadataIdl').mockReturnValue({
+            isLoading: false,
             programMetadataIdl: createMockAnchorIdl(), // but use normal one for PMP program
         });
 
@@ -260,10 +273,12 @@ describe('IdlCard', () => {
     test('should not render IdlCard when both IDLs are null', async () => {
         vi.spyOn(anchorModule, 'useAnchorProgram').mockReturnValue({
             idl: null,
+            isLoading: false,
             program: null,
         });
 
         vi.spyOn(programMetadataIdlModule, 'useProgramMetadataIdl').mockReturnValue({
+            isLoading: false,
             programMetadataIdl: null,
         });
 

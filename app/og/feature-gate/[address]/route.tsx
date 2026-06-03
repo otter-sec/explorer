@@ -1,10 +1,10 @@
+import { getFeatureInfo } from '@entities/feature-gate/server';
 import { BaseFeatureGateImage, isFeatureGateOgEnabled, OG_IMAGE_SIZE } from '@features/feature-gate/server';
 import { isAddress } from '@solana/kit';
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { Logger } from '@/app/shared/lib/logger';
-import { getFeatureInfo } from '@/app/utils/feature-gate/utils';
 
 export const runtime = 'edge';
 
@@ -14,11 +14,11 @@ const CACHE_HEADERS = {
 };
 
 type Props = Readonly<{
-    params: { address: string };
+    params: Promise<{ address: string }>;
 }>;
 
-export async function GET(_request: NextRequest, { params }: Props) {
-    const { address } = params;
+export async function GET(_request: NextRequest, props: Props) {
+    const { address } = await props.params;
 
     if (!isFeatureGateOgEnabled()) return new NextResponse('Not Found', { status: 404 });
     if (!address || !isAddress(address)) return new NextResponse('Invalid address', { status: 400 });

@@ -10,7 +10,8 @@ import { FetchStatus } from '@providers/cache';
 import { ParsedInstruction, ParsedTransactionWithMeta, PartiallyDecodedInstruction, PublicKey } from '@solana/web3.js';
 import { getTokenInstructionName, InstructionContainer } from '@utils/instruction';
 import React, { useMemo } from 'react';
-import Moment from 'react-moment';
+
+import { RelativeTime } from '@/app/shared/RelativeTime';
 
 import { getTransactionRows, HistoryCardFooter, HistoryCardHeader } from '../HistoryCardComponents';
 import { extractMintDetails, MintDetails } from './common';
@@ -67,19 +68,17 @@ export function TokenInstructionsCard({ address }: { address: string }) {
                     detailsList.push(
                         <tr key={signature + index}>
                             <td>
-                                <Signature signature={signature} link truncateChars={48} />
+                                <Signature signature={signature} link />
                             </td>
 
                             {hasTimestamps && (
-                                <td className="text-muted">
-                                    {blockTime && <Moment date={blockTime * 1000} fromNow />}
-                                </td>
+                                <td className="text-muted">{blockTime && <RelativeTime date={blockTime * 1000} />}</td>
                             )}
 
                             <td>{instructionName}</td>
 
                             <td>
-                                <Address pubkey={programId} link truncate truncateChars={16} />
+                                <Address pubkey={programId} link />
                             </td>
 
                             <td>
@@ -118,6 +117,7 @@ export function TokenInstructionsCard({ address }: { address: string }) {
                 title="Token Instructions"
                 analyticsSection="token_instructions_header"
             />
+            {/* TODO: migrate to <BaseCardTable> from @/app/shared/ui/Table */}
             <div className="table-responsive mb-0">
                 <table className="table table-sm table-nowrap card-table">
                     <thead>

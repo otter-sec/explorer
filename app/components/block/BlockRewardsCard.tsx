@@ -18,6 +18,7 @@ export function BlockRewardsCard({ block }: { block: VersionedBlockResponse }) {
                 <h3 className="card-header-title">Block Rewards</h3>
             </div>
 
+            {/* TODO: migrate to <BaseCardTable> from @/app/shared/ui/Table */}
             <div className="table-responsive mb-0">
                 <table className="table table-sm table-nowrap card-table">
                     <thead>
@@ -52,7 +53,7 @@ export function BlockRewardsCard({ block }: { block: VersionedBlockResponse }) {
                                         <SolBalance lamports={reward.lamports} />
                                     </td>
                                     <td>{reward.postBalance ? <SolBalance lamports={reward.postBalance} /> : '-'}</td>
-                                    <td>{percentChange ? percentChange + '%' : '-'}</td>
+                                    <td>{percentChange ? `${percentChange}%` : '-'}</td>
                                 </tr>
                             );
                         })}
